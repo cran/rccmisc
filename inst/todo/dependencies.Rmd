@@ -1,0 +1,300 @@
+---
+title: "Package dependdencies"
+author: "Erik Bulow"
+date: "2016-06-03"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# Aim
+
+In this vignette, we aim to investigate dependent packages for "knitr" version 1.6 as a case study.
+
+
+
+# Background
+The `rccmisc` package contains several functions to facilitate this aim. The workhorse function
+is `dependencies`. Start by reading its documentation for a short introduction to the field. 
+
+```r
+library(rccmisc)
+?dependencies
+```
+
+We here also include some relevant details from the documentation for convinients.
+
+## Implementation details
+
+> To find package dependencies for the lates version of a package on CRAN is easy. All direct dependencies are clearly stated in relevant fields of the DECRIPTION file published on CRAN/MRAN/METACRAN etc. Let's say we are interested in dependencies for the knitr package. We can find it here https://mran.revolutionanalytics.com/package/knitr/ On MRAN, it is also quite easy to find the recursive dependency tree by the "Dependencies Graph".
+
+> We see from the dependency table (not the graph since it doesn't show version numbers) that knitr imports for example evaluate (>= 0.7.2) and digest. In MRAN (as opposed to CRAN) there are also hyperlinks direct to the dependent packages that we can follow to find the recursive dependencies. If we click evaluate however, we see that the current package version is newer than 0.7.2. This is not what we want since we are searching for the absolute minimum set of packages to update. It turns out that CRAN and friends only provide information for the latest package version (MRAN possibly with some exceptions from september 2014).
+
+> Old package versions are archived as source (compressed tape archives). We can find all archived versions for evaluate at https://cran.r-project.org/src/contrib/Archive/evaluate/, including version 0.7.2 from 2015-08-13. To continue, we now have to download the archive, unzip it and read its DESCRIPTION file. Note that the latest release of each package is not archived. To find all versions of a package we therefore need to search both in the archive and on the more public web site.
+
+> But what about the other knitr dependency package, digest? Here we have only the package name, not its version. The latest available version can be found either on the web site or from within R by function available.packages. From the website we can also find the release date of that version (unfortenately not by available.packages). We can then compare the release date of the current version of knitr (2015-09-18 as of this writing) with all release dates for the digest package (note once again that we need to check both the archive and the latest version separately). We here find that the latest version on CRAN, 0.6.8, was published 2014-12-31 (and is therefore what we are looking for). Versions are always found for the date of the package immediately above in the recursive dependency tree. It therefore doesn't nececarly corresponds with the date of the package in the top level function call.
+
+> We continue the search through each step in the dependency tree until we reach a package that is part of the Base R installation (they are not included in the output).
+
+> Note that the search can also start at an earlier version. If we are interested not in the latest version of knitr but in version 1.6, we need to start in the archive (but we might need to check in both places if we are not sure weather a packe numer is current or archived).
+
+> A package might occur more than once in a complex dependency tree. Only the latest version is included in the output.
+
+## Additional details
+
+> Note that this function make extensive use of internet calls (downloading archive files etcetera). A relaible connection is therefore needed during execution.
+
+> Files (packages and package archives) are temporarly stored in the R sessions temporary directory (found by tempdir) but are removed when no longer needed.
+
+> Version numbers can sometimes have a quite perquliar form (see https://cran.r-project.org/doc/manuals/r-release/R-exts.html#The-DESCRIPTION-file for definition). For example "1.95-4.1" is a valid version number (for the XML package). Comparing version numbers is therefore not as straight forward as comparing numerics or characters. compareVersion is used for version comparisons.
+
+
+## CRAN mirror
+
+The dependencies function needs to connect to CRAN in order to collect package information. We therefore need to specify a CRAN mirror (this is probably done already but we here do explicitly).
+
+
+```r
+r <- getOption("repos"); r["CRAN"] <- "https://cran.r-project.org/"; options(repos = r)
+```
+
+
+
+# Focus on "Imports" and "Depends"
+
+Most functionality of a package should work as intended when packages specified by the "Depends" and 
+"Imports" field in the DESCRIPTION file is available. Lets first have a look at the data provided by the package itself 
+
+
+```r
+knitr::kable(dependencies("knitr", "1.6", recursive = FALSE))
+```
+
+```
+## Processing: knitr (1.6)
+```
+
+
+
+|pkg      |version |
+|:--------|:-------|
+|digest   |        |
+|evaluate |0.5.3   |
+|formatR  |0.10    |
+|highr    |0.3     |
+|markdown |0.6.5   |
+|stringr  |0.6     |
+
+Note that package version numbers has been added for each package, even though not necesarly stated explicitly bu the DESCRIPTION file itself. 
+
+
+# Recursion
+
+To get the full picture we need to follow the dependencies recursively all the way down to the packages contained in "Base R":
+
+```r
+knitr::kable(dependencies("knitr", "1.6"))
+```
+
+```
+## Processing: knitr (1.6)
+```
+
+```
+## Processing: evaluate (0.5.3)
+```
+
+```
+## Processing: stringr (0.4)
+```
+
+```
+## Processing: plyr (NA)
+```
+
+```
+## Error in if (archive) paste0("/Archive/", pkg, "/") else "/": missing value where TRUE/FALSE needed
+```
+
+
+
+# Including Suggested packages
+
+The use of the Depends and Imports field are defined in https://cran.r-project.org/doc/manuals/r-release/R-exts.html#The-DESCRIPTION-file 
+It is however also possible for a package to make use of the "Suggests" field. Packages should work without their suggested packages (they might be needed for some optional examples etcetera). There is however no absolute garantee for that. 
+To ensure a similair experience locally compared to using the INCA R-server-version, suggested packages should be considered.
+Note however that we only extend the dependency tree from the top level. Packages suggested from deeper levels are ignored.
+
+
+```r
+pkgs <- dependencies("knitr", "1.6", c("Imports", "Depends", "Suggests"))
+```
+
+```
+## Processing: knitr (1.6)
+```
+
+```
+## Processing: evaluate (0.5.3)
+```
+
+```
+## Processing: stringr (0.4)
+```
+
+```
+## Processing: plyr (NA)
+```
+
+```
+## Error in if (archive) paste0("/Archive/", pkg, "/") else "/": missing value where TRUE/FALSE needed
+```
+
+```r
+knitr::kable(pkgs)
+```
+
+```
+## Error in inherits(x, "list"): object 'pkgs' not found
+```
+
+To clarify the difference we can also list just the suggested packages on the top level:
+
+
+```r
+knitr::kable(dependencies("knitr", "1.6", "Suggests", FALSE))
+```
+
+```
+## Processing: knitr (1.6)
+```
+
+
+
+|pkg       |version |
+|:---------|:-------|
+|codetools |NA      |
+|RCurl     |NA      |
+|rgl       |NA      |
+|testit    |NA      |
+|XML       |NA      |
+
+We might here conclude that these packages could be safely ignored (INCA does not allow external internet calls so at least RCurl could be condidered unnecesary). 
+
+
+
+
+# Next step
+
+Now, what about the next step? Can all required packages be easily installed on INCA?
+Well, CRAN itself only stores the latest package version as a binary. It might therefore not be possible to install using the ordinary "ZIP-file procedure". The archived packages are however available (they are in fact downloaded temporarly during the investigation process by the call to `dependencies`). 
+Function `package_url` can be used to find their paths:
+
+
+```r
+pkgs$url <- with(pkgs, mapply(package_url, pkg, version))
+```
+
+```
+## Error in with(pkgs, mapply(package_url, pkg, version)): object 'pkgs' not found
+```
+
+```r
+knitr::kable(pkgs)
+```
+
+```
+## Error in inherits(x, "list"): object 'pkgs' not found
+```
+
+So, can these be easily installed? Well, mayby. The INCA R-server is running on Windows, which unfortenatley is the most difficult architecture to work with (will change to Linux when RStudio is introduced on INCA).
+If all packages are written in pure R code, it should be straight forward (although you might need "Rtools" in addition to your ordinary R instalation: https://cran.r-project.org/bin/windows/Rtools/). If however there are any FORTAN/C/C++ code etcetera included in the packages, they need to be compiled, which require the relevant compilers as well. Then read: https://cran.r-project.org/doc/manuals/R-admin.html#Windows-packages and https://cran.r-project.org/doc/manuals/R-admin.html#The-Windows-toolset for instructions. 
+
+
+
+
+
+
+# Do we need to compile?
+
+
+The `rccmisc` package also include a function `description_fields` that can be used to extract additional information (for example regarding the need of compilation):
+
+```r
+pkgs$NeedsCompilation <- with(pkgs, mapply(description_fields, pkg, version, 
+                                           MoreArgs = list(fields = "NeedsCompilation"))) == "yes"
+```
+
+```
+## Error in with(pkgs, mapply(description_fields, pkg, version, MoreArgs = list(fields = "NeedsCompilation"))): object 'pkgs' not found
+```
+
+```r
+knitr::kable(pkgs)
+```
+
+```
+## Error in inherits(x, "list"): object 'pkgs' not found
+```
+
+OK well, we do have some packages that needs to be compiled:
+
+
+```r
+knitr::kable(pkgs[pkgs$NeedsCompilation,])
+```
+
+```
+## Error in inherits(x, "list"): object 'pkgs' not found
+```
+
+We can see however (from within INCA) that package "digest" is already installed with the relevant version (0.6.4). If we then exlude the suggested packages, "markdown" version 0.6.5, is in fact he only potentially problematic package (markdown is not installed on INCA in any version as by the date of this writing).  
+
+
+But, there might be a chance that this packages can be handled anyway by MRAN, since they have stored binary package versions since a period back.
+
+The `checkpoint` function (from the MRAN companion package with the same name) relies on dates, not on package versions, so we first need to translate our version numbers to dates. 
+There is in fact function `version2date` in the `rccmisc` package that does just that (were "date" [and time] is the release date of the package). 
+
+```r
+version2date("markdown", "0.6.5")
+```
+
+```
+## [1] NA
+```
+
+Unfortenately the first MRAN snapshot was not taken until later:
+
+```r
+min(checkpoint::getValidSnapshots())
+```
+
+```
+## Warning in httpsSupported(): cannot open connection
+```
+
+```
+## Warning in file(con, "r"): cannot open URL 'http://mran.microsoft.com/
+## snapshot/': HTTP status was '0 (null)'
+```
+
+```
+## Error in checkpoint::getValidSnapshots(): Unable to download from MRAN: cannot open the connection
+```
+
+Hence, the next step to install the legacy packages is probably to read the references above to compile from source in Windows. 
+
+
+# The future
+
+Some future scenaries:
+
+* If this is carried forward, we might introduce a precedure for installation of legacy packages that can be reused also in the future (we might then also consider how to handle  orphened packages, which was not relevant in the case study above). This is however more of a technical (not "statistical") question.
+* This might not be relevant at all in the future if libraries could be handled differently (through RStudio). 
+* When time pass by, the chance to find binaries through the MRAN snapshots will increase.
+* The newly founded R consortium has announced their first grant to Gabor to implement R-hub: https://www.r-consortium.org/news/announcement/2015/11/r-consortium-awards-first-grant-help-advance-popular-programming-language
+With that in place, the whole infrastructure of R packages might be extensively developed

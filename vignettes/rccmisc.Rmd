@@ -1,0 +1,70 @@
+---
+title: "Miscellaneous R Functions for Swedish Regional Cancer Centers"
+author: "Erik Bulow"
+date: "2016-06-08"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Introduction
+
+The `rccmisc` package contains functions either required by other Swedish Regional Cancer Center packages (see: https://bitbucket.org/cancercentrum/rcc2) or standalone functions outside the scope of these packages.
+
+To get an overview over all exported functions, please use: `help(package = "rccmisc")`.
+
+Functions of the package might also be categorised under the themes below. Please see `?function`
+ for function names printed as `function`!
+ 
+
+# INCA infrastructure
+
+The rcc suite of packages are intended to work both locally and on INCA. An assertion function `is.inca` might be used to check if a script is called from INCA or not. 
+
+Sometimes you want to use a package not currently installed on the INCA R server. Then use `make_r_script` to export your script together with all needed functiuons from the package required. 
+
+<!--
+Package administration of INCA packages can be a hazle. There is a separeta vignette for functions checking required versions for dependency packages in order to maintain an up-to date but still stable library on the INCA server. Please ses `vignette("dependencies", package = "rccmisc")`. 
+-->
+
+# Miscellaneous help functions
+
+Large data sets from INCA might contain several hundreds of variables. It is often not possible to remember all available variable names wherefore functions `findvar`, `findvar_anywhere`, `findvar_fun` and `findvar_in_df` might come handy.
+
+Another problem regarding INCA variable names is that names are case sensitives while many statisticians prefer working with lower case variable names only. A common solution to this problem is to start R-scripts with:
+`names(df) <- tolower(names(df))`.
+This is however dangerous since more than one variable name might get the same lower case representation (this is a fact for some poorly designed variable names). Use function `lownames` instead.
+
+A related function is `change_col_name` that will ensure that a name change will not result in a data frame with more than one column of the same name (which is possible but potentialy dangerous in R).
+
+Missing values might be coded differently for different variables (such as "99" or "999" etc). Use `specify_missing` to handle missing values correctly.
+
+Base R contains some handy functions for "summarising in parallel" such as `pmin` and `pmax`. We here add `psum` to calculate sums in a similair way.
+
+Base R also have a function called `cut` used for categorisation of numeric data. Numeric vectors are handled by S3-method `cut.default` that does not take actual values into consideration. Our method `cut.integer` makes a nicer output when all numeric values happen to be integers.
+
+The `ifelse` function of base R is known to be dangerous (sometimes converting its outcome in unpredictable ways). `safe_ifelse` is a safer alternative!
+
+It migt sometimes be useful to know the "width" of an interval. This might be done manually using `range` but the new function `width` just makes it a little simpler. 
+
+
+
+
+# Lowlevel miscellaneous functions
+
+INCA data is sometimes converted between different formats. A numeric variable might sometimes end up being a character or factor although its contant is still numeric in nature. Functions such as `is.scalar_in`, `is.scalar_in01`, `is.wholenumber`, `is_numeric` and `as_numeric` could come handy in this situation.
+
+
+
+
+# Text handling
+
+R is known for sometimes unnecesarly treating characters as factor. INCA is sometimes known for the slight opposite. Doctors name for example might be missspelled or sometimes prefixed by title etcetera. Funtions `best_match` and `clean_text` might be useful in this situation. 
+
+
+
+# Internal help functions
+
+Some functions will probably not be that interesting outside the world of package development. The package does however also contain some internal help functions for other RCC packages, such as `create_s3_method` and `create_s3_print`.
